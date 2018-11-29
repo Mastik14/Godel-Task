@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+
+    <style>
+        td {
+            width: 50px;
+            height: 50px;
+            border: 1px solid black;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+
+<table id="gameField"></table>
+
+</body>
+
+<script>
+
+    function GameCell() {
+        let contains;
+
+        this.setContain = (element) => {
+            const validationUtil = new ValidationUtil();
+            if (!validationUtil.isValidElement(element))
+                throw new Error('[GameCell]: placing invalid element');
+            contains = element;
+        };
+
+        this.getContain = () => contains;
+    }
+
+    function GameEmptyCell() {
+        const icon = '.';
+        this.getIcon = () => icon;
+    }
+
+    function GameObstacle() {
+        const icon = '#';
+        this.getIcon = () => icon;
+    }
+
+    function GameField(height, width) {
+        let field;
+        this.getField = () => field;
+
+        this.generateField = () => {
+            field = [];
+            for (let y = 0; y < height; y++) {
+                field[y] = [];
+                for (let x = 0; x < width; x++) field[y][x] = new GameCell();
+            }
+            return this;
+        };
+
+        this.fillField = (element) => {
+            const validationUtil = new ValidationUtil();
+            if (!validationUtil.isFillerElementClass(element))
+                throw new Error('[GameField]: only cells and obstacles can be used as filler');
+            field.forEach(row => row.forEach(cell => cell.setContain(new element())));
+            return this;
+        };
+
+        this.placeAtRandomCells = (element, amount) => {
+            const validationUtil = new ValidationUtil();
+            if (!validationUtil.isFillerElementClass(element))
+                throw new Error('[GameField]: only cells and obstacles can be used as filler');
+            for (let i = 0; i < amount; i++) {
+                const randomUtil = new RandomUtil();
+                const x = randomUtil.getRandomNumber(0, width - 1);
+                const y = randomUtil.getRandomNumber(0, height - 1);
+                const elementInstance = new element();
+                field[x][y].setContain(elementInstance);
+            }
+            return this;
+        }
+
+        this.initHero = (position) => {
+            const hero = new GameHero();
+            const validationUtil = new ValidationUtil();
+            if (!validationUtil.isPosition(position)) {
+                console.warn('[GameField]: no hero position provided, generating random position for hero');
+                const randomUtil = new RandomUtil();
+                const x = randomUtil.getRandomNumber(0, width - 1);
+                const y = randomUtil.getRandomNumber(0, height - 1);
+                console.warn(`[GameField]: hero position: x: ${x}, y: ${y}`)
+                field[x][y].setContain;
+            } else {
+                const {x, y} = position;
+                field[x][y].setContain;
+            }
+            return this;
+        }
+    }
+
+    function GameHero() {
+        const icons = {left: '<', right: '>', top: '^', bottom: 'v', center: '*'};
+        const icon = icons['center'];
+        this.getIcon = () => icon;
+
+        this.rotate = (direction) => {
+            if (!icons[direction]) throw new Error('[GameHero]: no such direction');
+            else this.icon = icons[direction];
+        }
+    }
+
+    function RandomUtil() {
+        this.getRandomNumber = (minimum, maximum) => Math.floor(Math.random() * (maximum - minimum + 1)) + minimum;
+    }
+
+    function ValidationUtil() {
+        this.isPosition = (object) => object ? (object['x'] || object['y']) : false;
+
+        this.isGameEmptyCellClass = cellElement => cellElement === GameEmptyCell;
+        this.isGameObstacleClass = cellElement => cellElement === GameObstacle;
+
+        this.isGameEmptyCell = cellElement => cellElement instanceof GameEmptyCell;
+        this.isGameObstacle = cellElement => cellElement instanceof GameObstacle;
+        this.isGameHero = cellElement => cellElement instanceof GameHero;
+        this.isGameField = element => element instanceof GameField;
+
+        this.isFillerElementClass = elementClass => (
+            this.isGameEmptyCellClass(elementClass)
+            || this.isGameObstacleClass(elementClass));
+
+        this.isValidElement = element => (
+            this.isGameEmptyCell(element)
+            || this.isGameObstacle(element)
+            || this.isGameHero(element));
+    }
+
+    function GameFieldAdapter(domElement) {
+        this.render = (gameField) => {
+            const validationUtil = new ValidationUtil();
+            if (!validationUtil.isGameField(gameField))
+                throw new Error('[GameFieldAdapter]: provide GameField to render');
+            const field = gameField.getField();
+            const iconArray = field.map(row => row.map(element => element.getContain().getIcon()));
+            iconArray.forEach(row => {
+                const domROW = document.createElement('tr');
+                row.forEach(icon => {
+                    const domICON = document.createElement('td');
+                    domICON.innerText = icon;
+                    domROW.appendChild(domICON);
+                });
+                domElement.appendChild(domROW);
+            })
+        }
+    }
+
+    const gameField = new GameField(10, 10)
+        .generateField()
+        .fillField(GameEmptyCell)
+        .placeAtRandomCells(GameObstacle, 5)
+        .initHero();
+
+    const gameFieldAdapter = new GameFieldAdapter(document.getElementById('gameField'));
+    gameFieldAdapter.render(gameField);
+    console.log(gameFieldAdapter);
+    // console.log(gameField.getField())
+</script>
+
+</html>
